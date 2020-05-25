@@ -14,10 +14,17 @@ typedef bool GpBool;
 typedef float GpFloat;
 typedef size_t GpSize;
 
+typedef uint64_t GpContext;
+typedef uint64_t GpDevice;
+typedef uint64_t GpDeviceButton;
+
+typedef void* (*PFN_gpAllocateMemory)(void* userData, size_t size);
+typedef void (*PFN_gpFreeMemory)(void* userData, void* ptr);
+
 
 typedef enum GpResult {
 	GP_SUCCESS,
-	GP_GENERAL_ERROR,
+	GP_GENERIC_ERROR,
 } GpResult;
 
 typedef enum GpDeviceType {
@@ -33,6 +40,13 @@ typedef enum GpDeviceStatus {
 	GP_DEVICE_STATUS_LOW_BATTERY,
 } GpDeviceStatus;
 
+typedef enum GpDeviceButtonType {
+	GP_DEVICE_BUTTON_TYPE_FLOAT,
+	GP_DEVICE_BUTTON_TYPE_FLOAT2,
+	GP_DEVICE_BUTTON_TYPE_FLOAT3,
+	GP_DEVICE_BUTTON_TYPE_BOOL,
+} GpDeviceButtonType;
+
 typedef struct GpFloat2 {
 	GpFloat x;
 	GpFloat y;
@@ -44,24 +58,22 @@ typedef struct GpFloat3 {
 	GpFloat z;
 } GpFloat3;
 
-typedef struct GpInputState {
+typedef struct GpButtonState {
 	union {
 		GpFloat f;
 		GpFloat2 f2;
 		GpFloat3 f3;
 		GpBool b;
 	} data;
-} GpInputState;
+} GpButtonState;
 
 typedef struct GpDeviceInputState {
-
+	GpSize numButtons;
+	GpButtonState buttons[];
 } GpDeviceInputState;
 
-typedef uint64_t GpContext;
-typedef uint64_t GpDevice;
 
-typedef void* (*PFN_gpAllocateMemory)(void* userData, size_t size);
-typedef void (*PFN_gpFreeMemory)(void* userData, void* ptr);
+typedef void (*PFN_gpPollInputDevice)(GpDevice device, void* userData, GpDeviceInputState* inputState);
 
 typedef struct GpContextCreateInfo {
 	PFN_gpAllocateMemory allocateMemory;
@@ -69,24 +81,53 @@ typedef struct GpContextCreateInfo {
 	void* memoryUserData;
 } GpContextCreateInfo;
 
-typedef void (*PFN_gpPollInputDevice)(GpDevice device, void* userData);
 
 typedef struct GpRegisterInputDeviceInfo {
-	GpContext context;
 	GpDeviceType deviceType;
+	GpSize deviceNumber;
 	PFN_gpPollInputDevice pollInputDevice;
 	void* userData;
 } GpRegisterInputDeviceInfo;
 
+typedef struct GpDeviceButtonInfo {
+	GpBool isValid;
+	GpDevice device;
+	GpDeviceButton button;
+	GpDeviceButtonType type;
+} GpDeviceButtonInfo;
 
-
+// Context/global
 GpResult gpCreateContext(const GpContextCreateInfo* pCreateInfo, GpContext* context);
 void gpDestroyContext(GpContext context);
 void gpProcessContext(GpContext context);
+GpResult gpGetAnyButtonDown(GpContext context, GpSize maxButtonNum, GpDeviceButtonInfo* deviceButtonInfos);
+GpResult gpGetDeviceByType(GpContext context, GpDeviceType deviceType, GpSize deviceNumber);
+// TODO device sync?
 
-GpResult gpRegisterDevice(const GpRegisterInputDeviceInfo* pRegisterInfo, GpDevice* device);
+// Device
+GpResult gpRegisterDevice(GpContext context, const GpRegisterInputDeviceInfo* pRegisterInfo, GpDevice* device);
+GpResult gpCreateAndRegisterPlatformDevice(GpContext context, GpDeviceType type, GpDevice* device);
 void gpUnregisterDevice(GpDevice device);
-GpResult gpGetDeviceStatus(GpDevice device, GpDeviceStatus* state);
+GpResult gpGetDeviceStatus(GpDevice device, GpDeviceStatus* status);
+GpResult gpAllocateDeviceButtonState(GpDevice device, GpDeviceInputState** inputState);
+void gpFreeDeviceButtonState(GpDevice device, GpDeviceInputState* inputState);
+GpResult gpUpdateDeviceButtonState(GpDevice device, GpDeviceInputState* inputState);
+GpResult gpGetDeviceButtonInfo(GpDevice device, GpDeviceButton deviceButton, GpDeviceButtonInfo* deviceButtonInfo);
+GpResult gpGetDeviceButtonName(GpDevice device, GpDeviceButton deviceButton, GpSize maxNameLen, char* name);
+GpResult gpGetDeviceButtonByName(GpDevice device, const char* name, GpDeviceButton* deviceButton);
+// TODO deadzones
+
+// State helpers
+GpBool gpIsDown(const GpDeviceInputState* inputState, GpDeviceButton deviceButton);
+GpFloat gpGetFloat(const GpDeviceInputState* inputState, GpDeviceButton deviceButton);
+
+// TODO button change events
+
+// TODO checking for button changes/deltas
+
+// TODO input mapping
+
+// TODO input processor chaining/graph
 
 #ifdef __cplusplus
 }
