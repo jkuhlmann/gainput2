@@ -99,6 +99,7 @@ typedef struct GpDeviceButtonInfo {
 // Context/global
 GpResult gpCreateContext(const GpContextCreateInfo* pCreateInfo, GpContext* context);
 void gpDestroyContext(GpContext context);
+void gpSetContextDisplaySize(GpContext context, GpSize width, GpSize height);
 void gpProcessContext(GpContext context);
 GpResult gpGetAnyButtonDown(GpContext context, GpSize maxButtonNum, GpDeviceButtonInfo* deviceButtonInfos);
 GpResult gpGetDeviceByType(GpContext context, GpDeviceType deviceType, GpSize deviceNumber);
@@ -109,25 +110,29 @@ GpResult gpRegisterDevice(GpContext context, const GpRegisterInputDeviceInfo* pR
 GpResult gpCreateAndRegisterPlatformDevice(GpContext context, GpDeviceType type, GpDevice* device);
 void gpUnregisterDevice(GpDevice device);
 GpResult gpGetDeviceStatus(GpDevice device, GpDeviceStatus* status);
-GpResult gpAllocateDeviceButtonState(GpDevice device, GpDeviceInputState** inputState);
-void gpFreeDeviceButtonState(GpDevice device, GpDeviceInputState* inputState);
-GpResult gpUpdateDeviceButtonState(GpDevice device, GpDeviceInputState* inputState);
+GpResult gpAllocateDeviceInputState(GpDevice device, GpDeviceInputState** inputState);
+void gpFreeDeviceInputState(GpDevice device, GpDeviceInputState* inputState);
+GpResult gpUpdateDeviceInputState(GpDevice device, GpDeviceInputState* inputState);
 GpResult gpGetDeviceButtonInfo(GpDevice device, GpDeviceButton deviceButton, GpDeviceButtonInfo* deviceButtonInfo);
 GpResult gpGetDeviceButtonName(GpDevice device, GpDeviceButton deviceButton, GpSize maxNameLen, char* name);
 GpResult gpGetDeviceButtonByName(GpDevice device, const char* name, GpDeviceButton* deviceButton);
+GpResult gpGetDeviceAnyButtonDown(GpDevice device, GpSize maxButtonNum, GpDeviceButtonInfo* deviceButtonInfos);
 // TODO deadzones
 
 // State helpers
 GpBool gpIsDown(const GpDeviceInputState* inputState, GpDeviceButton deviceButton);
 GpFloat gpGetFloat(const GpDeviceInputState* inputState, GpDeviceButton deviceButton);
 
-// TODO button change events
+// TODO button change events/listeners
 
 // TODO checking for button changes/deltas
 
 // TODO input mapping
 
 // TODO input processor chaining/graph
+
+// Cut feature (for now): network sync, gestures, thread-safe adding of button events, 
+// debug rendering, input recording/playback.
 
 #ifdef __cplusplus
 }
